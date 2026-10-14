@@ -1,0 +1,46 @@
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: leaseflow-db
+    environment:
+      POSTGRES_USER: leaseflow
+      POSTGRES_PASSWORD: leaseflow_secret
+      POSTGRES_DB: leaseflow_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U leaseflow -d leaseflow_db"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  # Services for Phase 7 (Observability)
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: leaseflow-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./deploy/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+    profiles:
+      - monitoring
+
+  grafana:
+    image: grafana/grafana:11.2.0
+    container_name: leaseflow-grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+    volumes:
+      - ./deploy/grafana:/etc/grafana/provisioning
+    profiles:
+      - monitoring
+    depends_on:
+      - prometheus
+
+volumes:
+  postgres_data:
