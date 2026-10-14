@@ -3,9 +3,17 @@ from datetime import UTC, datetime
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from sqlalchemy.ext.asyncio import (
+    AsyncEngine,
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+)
 
 from app.core.clock import FrozenClock
 from app.core.config import Settings
+from app.db.models import Base
+from app.db.session import get_db_session
 from app.main import app
 
 
@@ -30,8 +38,46 @@ def test_settings() -> Settings:
 
 
 @pytest.fixture
-async def async_client() -> AsyncGenerator[AsyncClient, None]:
-    """Fixture providing an async HTTP client for FastAPI app testing."""
+async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
+    """Isolated async SQLite engine for in-memory testing."""
+    engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        echo=False,
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    yield engine
+
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await engine.dispose()
+
+
+@pytest.fixture
+async def test_session(test_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
+    """Provides an isolated database session per test with rollback cleanup."""
+    factory = async_sessionmaker(
+        bind=test_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
+    )
+    async with factory() as session:
+        yield session
+
+
+@pytest.fixture
+async def async_client(test_session: AsyncSession) -> AsyncGenerator[AsyncClient, None]:
+    """Provides an async HTTP client for FastAPI with overridden database dependency."""
+
+    async def override_db() -> AsyncGenerator[AsyncSession, None]:
+        yield test_session
+
+    app.dependency_overrides[get_db_session] = override_db
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         yield client
+
+    app.dependency_overrides.clear()

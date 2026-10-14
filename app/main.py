@@ -1,6 +1,7 @@
 from fastapi import FastAPI, Response
 from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
 
+from app.api.routes_jobs import router as jobs_router
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 
@@ -12,6 +13,8 @@ app = FastAPI(
     description="Fault-tolerant Distributed Job Scheduler in Python",
     version="0.1.0",
 )
+
+app.include_router(jobs_router)
 
 
 @app.get("/healthz", tags=["System"])

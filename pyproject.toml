@@ -26,6 +26,7 @@ dev = [
     "httpx>=0.28.0",
     "ruff>=0.8.0",
     "mypy>=1.13.0",
+    "aiosqlite>=0.22.0",
 ]
 
 [build-system]
@@ -50,6 +51,7 @@ select = [
 ]
 ignore = [
     "B008", # do not perform function calls in argument defaults (FastAPI Depends)
+    "E501", # line too long (delegated to ruff formatter)
 ]
 
 [tool.mypy]
