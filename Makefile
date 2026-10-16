@@ -13,8 +13,7 @@ help:
 	@echo "  make bench    - Run performance benchmarks"
 
 install:
-	uv venv
-	uv pip install -e ".[dev]"
+	uv sync --all-extras --dev
 
 lint:
 	uv run ruff check .
