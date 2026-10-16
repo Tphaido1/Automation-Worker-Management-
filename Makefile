@@ -1,4 +1,4 @@
-.PHONY: help install lint format mypy test up down demo
+.PHONY: help install lint format mypy test up down demo bench
 
 help:
 	@echo "LeaseFlow Commands:"
@@ -10,6 +10,7 @@ help:
 	@echo "  make up       - Start Postgres database"
 	@echo "  make down     - Stop database"
 	@echo "  make demo     - Run chaos demo"
+	@echo "  make bench    - Run performance benchmarks"
 
 install:
 	uv venv
@@ -35,3 +36,6 @@ down:
 
 demo:
 	uv run python scripts/demo.py
+
+bench:
+	uv run python scripts/bench.py

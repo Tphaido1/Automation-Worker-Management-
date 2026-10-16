@@ -27,10 +27,13 @@ class Settings(BaseSettings):
     DEFAULT_MAX_RETRIES: int = 3
     DEFAULT_TIMEOUT_SECONDS: int = 60
 
-    # API Server
+    # API Server & Security
     API_HOST: str = "0.0.0.0"
     API_PORT: int = 8000
     ENVIRONMENT: str = "development"
+    API_KEY: str | None = None
+    REQUIRE_API_KEY: bool = False
+    MAX_PAYLOAD_BYTES: int = 1_048_576  # 1MB max payload size
 
 
 @lru_cache

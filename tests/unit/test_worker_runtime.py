@@ -114,6 +114,7 @@ async def test_worker_records_handler_exception(test_engine) -> None:
             type="faulty_task",
             payload={},
             status=JobStatus.QUEUED,
+            max_retries=1,  # Exhausts retries on attempt 1
             run_at=datetime.now(UTC) - timedelta(seconds=1),
         )
         session.add(job)
@@ -128,3 +129,44 @@ async def test_worker_records_handler_exception(test_engine) -> None:
         assert failed_job is not None
         assert failed_job.status == JobStatus.DEAD_LETTER
         assert "Simulated network timeout" in (failed_job.last_error or "")
+
+
+@pytest.mark.asyncio
+async def test_worker_transitions_to_retry_waiting_when_retries_remain(test_engine) -> None:
+    """Verifies that an unhandled retryable error sets job to RETRY_WAITING with future run_at."""
+    session_factory = async_sessionmaker(
+        bind=test_engine, class_=AsyncSession, expire_on_commit=False
+    )
+    backend = PostgresQueueBackend(session_factory)
+    registry = HandlerRegistry()
+
+    @registry.register("transient_fail")
+    async def transient_fail(ctx: JobContext) -> None:
+        raise ConnectionResetError("Connection lost to upstream service")
+
+    job_id = uuid.uuid4()
+    now = datetime.now(UTC)
+    async with session_factory() as session:
+        job = JobModel(
+            id=job_id,
+            type="transient_fail",
+            payload={},
+            status=JobStatus.QUEUED,
+            max_retries=3,
+            run_at=now - timedelta(seconds=1),
+        )
+        session.add(job)
+        await session.commit()
+
+    worker = Worker(worker_id="test-worker-retry", queue=backend, registry=registry)
+    claimed = await worker.run_once()
+    assert claimed is True
+
+    async with session_factory() as session:
+        retrying_job = await session.get(JobModel, job_id)
+        assert retrying_job is not None
+        assert retrying_job.status == JobStatus.RETRY_WAITING
+        assert retrying_job.attempt == 1
+        assert "Connection lost to upstream service" in (retrying_job.last_error or "")
+        assert retrying_job.lease_owner is None
+        assert retrying_job.lease_expires_at is None

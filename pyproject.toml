@@ -77,3 +77,8 @@ python_functions = ["test_*"]
 filterwarnings = [
     "ignore::DeprecationWarning",
 ]
+
+[dependency-groups]
+dev = [
+    "psutil>=7.2.2",
+]

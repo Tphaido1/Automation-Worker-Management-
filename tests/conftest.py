@@ -58,6 +58,17 @@ async def test_engine() -> AsyncGenerator[AsyncEngine, None]:
 
 
 @pytest.fixture
+def async_session_factory(test_engine: AsyncEngine) -> async_sessionmaker[AsyncSession]:
+    """Provides a sessionmaker bound to the test engine."""
+    return async_sessionmaker(
+        bind=test_engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+        autoflush=False,
+    )
+
+
+@pytest.fixture
 async def test_session(test_engine: AsyncEngine) -> AsyncGenerator[AsyncSession, None]:
     """Provides an isolated database session per test with rollback cleanup."""
     factory = async_sessionmaker(

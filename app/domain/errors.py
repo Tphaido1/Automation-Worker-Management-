@@ -34,3 +34,15 @@ class JobAlreadyTerminalError(LeaseFlowError):
         super().__init__(
             f"Job '{job_id}' is already in terminal state '{status}' and cannot be altered"
         )
+
+
+class RetryableError(LeaseFlowError):
+    """Raised when an operation encounters a transient failure and should be retried."""
+
+    pass
+
+
+class NonRetryableError(LeaseFlowError):
+    """Raised when an operation encounters an unrecoverable failure and must go to Dead-Letter Queue."""
+
+    pass

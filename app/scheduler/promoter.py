@@ -31,6 +31,7 @@ async def promote_due_jobs(session: AsyncSession) -> int:
             status=JobStatus.QUEUED,
             updated_at=now,
         )
+        .execution_options(synchronize_session="fetch")
     )
     res_pending = await session.execute(stmt_pending)
     count_pending = res_pending.rowcount if isinstance(res_pending, CursorResult) else 0
@@ -46,6 +47,7 @@ async def promote_due_jobs(session: AsyncSession) -> int:
             status=JobStatus.QUEUED,
             updated_at=now,
         )
+        .execution_options(synchronize_session="fetch")
     )
     res_retry = await session.execute(stmt_retry)
     count_retry = res_retry.rowcount if isinstance(res_retry, CursorResult) else 0

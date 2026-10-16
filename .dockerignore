@@ -1,0 +1,40 @@
+# Git & VCS
+.git/
+.gitignore
+.gitattributes
+
+# Python / Bytecode & Caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual Environments
+.venv/
+venv/
+ENV/
+
+# Development artifacts & Local databases
+*.db
+*.db-shm
+*.db-wal
+*.log
+.env
+.env.*
+!.env.example
+
+# IDEs & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Non-production code & assets
+tests/
+docs/
+scripts/

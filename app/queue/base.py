@@ -24,9 +24,11 @@ class QueueBackend(ABC):
         job_id: uuid.UUID,
         fencing_token: int,
         result: dict[str, Any] | None = None,
+        outbox_records: list[dict[str, Any]] | None = None,
+        job_type: str = "default",
     ) -> bool:
         """
-        Atomically completes the job with SUCCEEDED status.
+        Atomically completes the job with SUCCEEDED status and writes outbox events (ADR-5).
         Requires matching fencing_token (ADR-3).
         Returns True if committed successfully, False if token is stale (REJECTED_STALE).
         """
@@ -38,9 +40,30 @@ class QueueBackend(ABC):
         job_id: uuid.UUID,
         fencing_token: int,
         error: str,
+        retryable: bool = True,
+        backoff_seconds: float = 0.0,
+        job_type: str = "default",
     ) -> bool:
         """
         Atomically records a failure for the job attempt.
-        Returns True if updated successfully, False if token is stale.
+        Fenced by fencing_token (ADR-3).
+        If retryable and attempt < max_retries, transitions to RETRY_WAITING with run_at = now + backoff_seconds.
+        Otherwise, transitions to DEAD_LETTER (ADR-5).
+        Returns True if updated successfully, False if token is stale (REJECTED_STALE).
+        """
+        ...
+
+    @abstractmethod
+    async def heartbeat(
+        self,
+        job_id: uuid.UUID,
+        fencing_token: int,
+        lease_ttl: int = 30,
+        job_type: str = "default",
+    ) -> bool:
+        """
+        Atomically extends lease_expires_at for a RUNNING job.
+        Requires matching fencing_token (ADR-3, ADR-4).
+        Returns True if lease extended, False if token is stale or job is no longer RUNNING.
         """
         ...
